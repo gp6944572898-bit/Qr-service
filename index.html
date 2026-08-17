@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QR · Динамические коды</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <!-- Экран входа -->
+  <main id="loginScreen" class="screen">
+    <form id="loginForm" class="login-card">
+      <div class="login-mark">QR</div>
+      <h1>Вход в панель</h1>
+      <p class="muted">Управление динамическими QR-кодами</p>
+
+      <label>Логин
+        <input type="text" id="loginUsername" autocomplete="username" required />
+      </label>
+      <label>Пароль
+        <input type="password" id="loginPassword" autocomplete="current-password" required />
+      </label>
+
+      <button type="submit">Войти</button>
+      <p id="loginError" class="error"></p>
+    </form>
+  </main>
+
+  <!-- Панель управления -->
+  <main id="dashScreen" class="screen" hidden>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">QR</span>
+        <span>Динамические коды</span>
+      </div>
+      <div class="topbar-right">
+        <span id="whoami" class="muted"></span>
+        <button id="logoutBtn" class="ghost">Выйти</button>
+      </div>
+    </header>
+
+    <section class="create-panel">
+      <form id="createForm">
+        <input type="url" id="newTarget" placeholder="https://example.com/куда-ведёт-код" required />
+        <input type="text" id="newLabel" placeholder="Название (необязательно)" />
+        <button type="submit">Создать QR-код</button>
+      </form>
+      <p id="createError" class="error"></p>
+    </section>
+
+    <section id="emptyState" class="empty" hidden>
+      <p>Пока нет ни одного QR-кода.</p>
+      <p class="muted">Создайте первый выше — ссылку внутри него всегда можно будет поменять.</p>
+    </section>
+
+    <section id="cards" class="cards"></section>
+  </main>
+
+  <!-- Шаблон карточки QR-кода -->
+  <template id="cardTemplate">
+    <article class="card">
+      <div class="card-stub">
+        <img class="card-qr" alt="QR-код" />
+      </div>
+      <div class="card-body">
+        <div class="card-code"></div>
+        <input class="card-target" type="url" />
+        <input class="card-label" type="text" placeholder="Название" />
+        <div class="card-actions">
+          <button class="save">Сохранить</button>
+          <button class="copy ghost">Скопировать ссылку кода</button>
+          <button class="delete ghost danger">Удалить</button>
+        </div>
+        <p class="card-msg"></p>
+      </div>
+    </article>
+  </template>
+
+<script src="/app.js"></script>
+</body>
+</html>
