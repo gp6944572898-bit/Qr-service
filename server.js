@@ -19,8 +19,6 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static('public'));
 
-// ---------- Вспомогательные функции ----------
-
 function signToken(username) {
   return jwt.sign({ username }, JWT_SECRET, { expiresIn: '7d' });
 }
@@ -40,7 +38,39 @@ function isValidUrl(value) {
   return typeof value === 'string' && /^https?:\/\//i.test(value);
 }
 
-// ---------- Авторизация ----------
+app.get('/api/setup/status', async (req, res) => {
+  try {
+    const admin = await db.getAdmin();
+    res.json({ needsSetup: !admin });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+app.post('/api/setup', async (req, res) => {
+  try {
+    const admin = await db.getAdmin();
+    if (admin) {
+      return res.status(403).json({ error: 'Администратор уже создан, настройка недоступна' });
+    }
+
+    const { username, password } = req.body || {};
+    if (!username || username.trim().length < 2) {
+      return res.status(400).json({ error: 'Логин должен быть не короче 2 символов' });
+    }
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Пароль должен быть не короче 6 символов' });
+    }
+
+    const passwordHash = bcrypt.hashSync(password, 10);
+    await db.setAdmin(username.trim(), passwordHash);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
 
 app.post('/api/login', async (req, res) => {
   try {
@@ -49,7 +79,7 @@ app.post('/api/login', async (req, res) => {
 
     if (!admin) {
       return res.status(400).json({
-        error: 'Администратор ещё не создан. Выполните на сервере: npm run create-admin',
+        error: 'Администратор ещё не создан. Откройте главную страницу сервиса.',
       });
     }
 
@@ -79,8 +109,6 @@ app.post('/api/logout', (req, res) => {
 app.get('/api/me', requireAuth, (req, res) => {
   res.json({ username: req.user.username });
 });
-
-// ---------- CRUD для QR-кодов (требует авторизации) ----------
 
 app.get('/api/qrcodes', requireAuth, async (req, res) => {
   try {
@@ -142,7 +170,6 @@ app.delete('/api/qrcodes/:code', requireAuth, async (req, res) => {
   }
 });
 
-// PNG-картинка QR-кода (нужна авторизация — код с картинки ведёт на редирект-ссылку)
 app.get('/api/qrcodes/:code/image', requireAuth, async (req, res) => {
   try {
     const entry = await db.getCode(req.params.code);
@@ -157,8 +184,6 @@ app.get('/api/qrcodes/:code/image', requireAuth, async (req, res) => {
   }
 });
 
-// ---------- Публичный редирект (то, что открывается при сканировании) ----------
-
 app.get('/r/:code', async (req, res) => {
   try {
     const entry = await db.getCode(req.params.code);
@@ -169,8 +194,6 @@ app.get('/r/:code', async (req, res) => {
     res.status(500).send('Ошибка сервера');
   }
 });
-
-// ---------- Запуск ----------
 
 db.init()
   .then(() => {
