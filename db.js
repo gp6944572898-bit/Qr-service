@@ -27,8 +27,6 @@ async function init() {
   `);
 }
 
-// ---------- Admin ----------
-
 async function getAdmin() {
   const { rows } = await pool.query('SELECT username, password_hash FROM admin WHERE id = 1');
   if (!rows[0]) return null;
@@ -42,8 +40,6 @@ async function setAdmin(username, passwordHash) {
     [username, passwordHash]
   );
 }
-
-// ---------- QR-коды ----------
 
 async function listCodes() {
   const { rows } = await pool.query(
@@ -73,24 +69,3 @@ async function updateCode(code, target, label) {
   const now = Date.now();
   const { rowCount } = await pool.query(
     'UPDATE qrcodes SET target = $2, label = COALESCE($3, label), updated_at = $4 WHERE code = $1',
-    [code, target, label, now]
-  );
-  if (rowCount === 0) return null;
-  return getCode(code);
-}
-
-async function deleteCode(code) {
-  const { rowCount } = await pool.query('DELETE FROM qrcodes WHERE code = $1', [code]);
-  return rowCount > 0;
-}
-
-module.exports = {
-  init,
-  getAdmin,
-  setAdmin,
-  listCodes,
-  getCode,
-  createCode,
-  updateCode,
-  deleteCode,
-};
