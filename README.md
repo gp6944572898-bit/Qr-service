@@ -1,0 +1,2 @@
+# Qr-service
+Dinamic
