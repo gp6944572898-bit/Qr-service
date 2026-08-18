@@ -11,7 +11,16 @@ const createForm = document.getElementById('createForm');
 const createError = document.getElementById('createError');
 const cardsEl = document.getElementById('cards');
 const emptyState = document.getElementById('emptyState');
+const noResults = document.getElementById('noResults');
 const cardTemplate = document.getElementById('cardTemplate');
+const searchInput = document.getElementById('searchInput');
+const resultsCount = document.getElementById('resultsCount');
+const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+const PAGE_SIZE = 20;
+let currentSearch = '';
+let currentOffset = 0;
+let currentTotal = 0;
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
@@ -110,15 +119,48 @@ createForm.addEventListener('submit', async (e) => {
   }
 });
 
-async function loadCodes() {
-  const list = await api('/api/qrcodes');
-  cardsEl.innerHTML = '';
-  emptyState.hidden = list.length > 0;
+async function loadCodes({ reset = true } = {}) {
+  if (reset) {
+    currentOffset = 0;
+    cardsEl.innerHTML = '';
+  }
 
-  for (const item of list) {
+  const params = new URLSearchParams({
+    limit: String(PAGE_SIZE),
+    offset: String(currentOffset),
+  });
+  if (currentSearch) params.set('search', currentSearch);
+
+  const { items, total } = await api(`/api/qrcodes?${params.toString()}`);
+  currentTotal = total;
+
+  for (const item of items) {
     cardsEl.appendChild(renderCard(item));
   }
+  currentOffset += items.length;
+
+  emptyState.hidden = currentSearch !== '' || total > 0;
+  noResults.hidden = !(currentSearch !== '' && total === 0);
+
+  loadMoreBtn.hidden = currentOffset >= total;
+
+  resultsCount.textContent = total > 0
+    ? `Показано ${currentOffset} из ${total}`
+    : '';
 }
+
+let searchDebounce;
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    currentSearch = searchInput.value.trim();
+    loadCodes({ reset: true });
+  }, 300);
+});
+
+loadMoreBtn.addEventListener('click', () => {
+  loadCodes({ reset: false });
+});
 
 function renderCard(item) {
   const node = cardTemplate.content.cloneNode(true);
