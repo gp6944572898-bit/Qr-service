@@ -69,3 +69,24 @@ async function updateCode(code, target, label) {
   const now = Date.now();
   const { rowCount } = await pool.query(
     'UPDATE qrcodes SET target = $2, label = COALESCE($3, label), updated_at = $4 WHERE code = $1',
+    [code, target, label, now]
+  );
+  if (rowCount === 0) return null;
+  return getCode(code);
+}
+
+async function deleteCode(code) {
+  const { rowCount } = await pool.query('DELETE FROM qrcodes WHERE code = $1', [code]);
+  return rowCount > 0;
+}
+
+module.exports = {
+  init,
+  getAdmin,
+  setAdmin,
+  listCodes,
+  getCode,
+  createCode,
+  updateCode,
+  deleteCode,
+};
