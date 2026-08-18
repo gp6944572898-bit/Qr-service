@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const QRCode = require('qrcode');
+const sharp = require('sharp');
 const { nanoid } = require('nanoid');
 const db = require('./db');
 
@@ -13,7 +14,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-.env';
 const BASE_URL = (process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
-const CODE_LENGTH = 7;
+const CODE_LENGTH = 6; // короче код — проще и "крупноклеточнее" QR-рисунок
 
 app.use(express.json());
 app.use(cookieParser());
@@ -181,10 +182,44 @@ app.get('/api/qrcodes/:code/image', requireAuth, async (req, res) => {
 
     const redirectUrl = `${BASE_URL}/r/${entry.code}`;
     res.type('png');
-    QRCode.toFileStream(res, redirectUrl, { width: 320, margin: 2 });
+    QRCode.toFileStream(res, redirectUrl, { width: 200, margin: 2, errorCorrectionLevel: 'L' });
   } catch (e) {
     console.error(e);
     res.status(500).send('Не удалось сгенерировать QR-код');
+  }
+});
+
+app.get('/api/qrcodes/:code/download', requireAuth, async (req, res) => {
+  try {
+    const entry = await db.getCode(req.params.code);
+    if (!entry) return res.status(404).send('Not found');
+
+    const format = req.query.format === 'jpg' ? 'jpg' : 'png';
+    let size = parseInt(req.query.size, 10) || 500;
+    size = Math.min(Math.max(size, 50), 2000);
+
+    const redirectUrl = `${BASE_URL}/r/${entry.code}`;
+    const pngBuffer = await QRCode.toBuffer(redirectUrl, {
+      type: 'png',
+      width: size,
+      margin: 2,
+      errorCorrectionLevel: 'L',
+    });
+
+    const filename = `qr-${entry.numericId || entry.code}-${size}px.${format}`;
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    if (format === 'jpg') {
+      const jpgBuffer = await sharp(pngBuffer).flatten({ background: '#ffffff' }).jpeg({ quality: 92 }).toBuffer();
+      res.type('jpg');
+      res.send(jpgBuffer);
+    } else {
+      res.type('png');
+      res.send(pngBuffer);
+    }
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Не удалось сгенерировать файл');
   }
 });
 
@@ -196,6 +231,20 @@ app.get('/r/:code', async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).send('Ошибка сервера');
+  }
+});
+
+app.get('/api/history', requireAuth, async (req, res) => {
+  try {
+    const search = typeof req.query.search === 'string' ? req.query.search : '';
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+
+    const { items, total } = await db.getHistory({ search, limit, offset });
+    res.json({ items, total });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
