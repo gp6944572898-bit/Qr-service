@@ -17,10 +17,25 @@ const searchInput = document.getElementById('searchInput');
 const resultsCount = document.getElementById('resultsCount');
 const loadMoreBtn = document.getElementById('loadMoreBtn');
 
+const tabCodesBtn = document.getElementById('tabCodesBtn');
+const tabHistoryBtn = document.getElementById('tabHistoryBtn');
+const tabCodes = document.getElementById('tabCodes');
+const tabHistory = document.getElementById('tabHistory');
+
+const historySearchInput = document.getElementById('historySearchInput');
+const historyResultsCount = document.getElementById('historyResultsCount');
+const historyList = document.getElementById('historyList');
+const historyEmpty = document.getElementById('historyEmpty');
+const historyLoadMoreBtn = document.getElementById('historyLoadMoreBtn');
+const historyTemplate = document.getElementById('historyTemplate');
+
 const PAGE_SIZE = 20;
 let currentSearch = '';
 let currentOffset = 0;
-let currentTotal = 0;
+
+let historySearch = '';
+let historyOffset = 0;
+let historyLoaded = false;
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
@@ -70,6 +85,26 @@ function showDash() {
   dashScreen.hidden = false;
 }
 
+// ---------- Вкладки ----------
+
+tabCodesBtn.addEventListener('click', () => {
+  tabCodesBtn.classList.add('active');
+  tabHistoryBtn.classList.remove('active');
+  tabCodes.hidden = false;
+  tabHistory.hidden = true;
+});
+
+tabHistoryBtn.addEventListener('click', async () => {
+  tabHistoryBtn.classList.add('active');
+  tabCodesBtn.classList.remove('active');
+  tabCodes.hidden = true;
+  tabHistory.hidden = false;
+  if (!historyLoaded) {
+    historyLoaded = true;
+    await loadHistory({ reset: true });
+  }
+});
+
 setupForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   setupError.textContent = '';
@@ -113,7 +148,7 @@ createForm.addEventListener('submit', async (e) => {
   try {
     await api('/api/qrcodes', { method: 'POST', body: JSON.stringify({ target, label }) });
     createForm.reset();
-    await loadCodes();
+    await loadCodes({ reset: true });
   } catch (err) {
     createError.textContent = err.message;
   }
@@ -132,7 +167,6 @@ async function loadCodes({ reset = true } = {}) {
   if (currentSearch) params.set('search', currentSearch);
 
   const { items, total } = await api(`/api/qrcodes?${params.toString()}`);
-  currentTotal = total;
 
   for (const item of items) {
     cardsEl.appendChild(renderCard(item));
@@ -141,12 +175,9 @@ async function loadCodes({ reset = true } = {}) {
 
   emptyState.hidden = currentSearch !== '' || total > 0;
   noResults.hidden = !(currentSearch !== '' && total === 0);
-
   loadMoreBtn.hidden = currentOffset >= total;
 
-  resultsCount.textContent = total > 0
-    ? `Показано ${currentOffset} из ${total}`
-    : '';
+  resultsCount.textContent = total > 0 ? `Показано ${currentOffset} из ${total}` : '';
 }
 
 let searchDebounce;
@@ -158,25 +189,35 @@ searchInput.addEventListener('input', () => {
   }, 300);
 });
 
-loadMoreBtn.addEventListener('click', () => {
-  loadCodes({ reset: false });
-});
+loadMoreBtn.addEventListener('click', () => loadCodes({ reset: false }));
+
+function formatDate(ts) {
+  const d = new Date(ts);
+  return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
 
 function renderCard(item) {
   const node = cardTemplate.content.cloneNode(true);
   const card = node.querySelector('.card');
   const img = node.querySelector('.card-qr');
+  const idEl = node.querySelector('.card-id');
   const codeEl = node.querySelector('.card-code');
   const targetInput = node.querySelector('.card-target');
   const labelInput = node.querySelector('.card-label');
   const msg = node.querySelector('.card-msg');
+  const downloadPanel = node.querySelector('.download-panel');
+  const toggleDownloadBtn = node.querySelector('.toggle-download');
+  const dlFormat = node.querySelector('.dl-format');
+  const dlSize = node.querySelector('.dl-size');
+  const dlCustomSize = node.querySelector('.dl-custom-size');
+  const dlGoBtn = node.querySelector('.dl-go');
 
   card.dataset.code = item.code;
   img.src = `/api/qrcodes/${item.code}/image`;
+  idEl.textContent = `ID ${item.numericId || '—'}`;
   codeEl.textContent = `/r/${item.code}`;
   targetInput.value = item.target;
   labelInput.value = item.label || '';
-  labelInput.placeholder = 'Название (необязательно)';
 
   node.querySelector('.save').addEventListener('click', async () => {
     msg.textContent = '';
@@ -204,13 +245,77 @@ function renderCard(item) {
     if (!confirm('Удалить этот QR-код? Напечатанная картинка перестанет работать.')) return;
     try {
       await api(`/api/qrcodes/${item.code}`, { method: 'DELETE' });
-      await loadCodes();
+      await loadCodes({ reset: true });
     } catch (err) {
       msg.textContent = err.message;
       msg.classList.add('error');
     }
   });
 
+  toggleDownloadBtn.addEventListener('click', () => {
+    downloadPanel.hidden = !downloadPanel.hidden;
+  });
+
+  dlSize.addEventListener('change', () => {
+    dlCustomSize.hidden = dlSize.value !== 'custom';
+  });
+
+  dlGoBtn.addEventListener('click', () => {
+    const format = dlFormat.value;
+    let size = dlSize.value;
+    if (size === 'custom') {
+      size = dlCustomSize.value || '500';
+    }
+    const url = `/api/qrcodes/${item.code}/download?format=${format}&size=${encodeURIComponent(size)}`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.click();
+  });
+
+  return node;
+}
+
+async function loadHistory({ reset = true } = {}) {
+  if (reset) {
+    historyOffset = 0;
+    historyList.innerHTML = '';
+  }
+
+  const params = new URLSearchParams({
+    limit: String(PAGE_SIZE),
+    offset: String(historyOffset),
+  });
+  if (historySearch) params.set('search', historySearch);
+
+  const { items, total } = await api(`/api/history?${params.toString()}`);
+
+  for (const item of items) {
+    historyList.appendChild(renderHistoryItem(item));
+  }
+  historyOffset += items.length;
+
+  historyEmpty.hidden = total > 0;
+  historyLoadMoreBtn.hidden = historyOffset >= total;
+  historyResultsCount.textContent = total > 0 ? `Показано ${historyOffset} из ${total}` : '';
+}
+
+let historySearchDebounce;
+historySearchInput.addEventListener('input', () => {
+  clearTimeout(historySearchDebounce);
+  historySearchDebounce = setTimeout(() => {
+    historySearch = historySearchInput.value.trim();
+    loadHistory({ reset: true });
+  }, 300);
+});
+
+historyLoadMoreBtn.addEventListener('click', () => loadHistory({ reset: false }));
+
+function renderHistoryItem(item) {
+  const node = historyTemplate.content.cloneNode(true);
+  node.querySelector('.history-id').textContent = `ID ${item.numericId || '—'} · ${item.label || 'без названия'}`;
+  node.querySelector('.history-time').textContent = formatDate(item.changedAt);
+  node.querySelector('.history-old').textContent = item.oldTarget;
+  node.querySelector('.history-new').textContent = item.newTarget;
   return node;
 }
 
