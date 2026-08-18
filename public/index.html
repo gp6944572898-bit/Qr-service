@@ -71,12 +71,26 @@
       <p id="createError" class="error"></p>
     </section>
 
+    <section class="search-panel">
+      <input type="search" id="searchInput" placeholder="Поиск по названию, ссылке или коду…" />
+      <span id="resultsCount" class="muted"></span>
+    </section>
+
     <section id="emptyState" class="empty" hidden>
       <p>Пока нет ни одного QR-кода.</p>
       <p class="muted">Создайте первый выше — ссылку внутри него всегда можно будет поменять.</p>
     </section>
 
+    <section id="noResults" class="empty" hidden>
+      <p>Ничего не найдено.</p>
+      <p class="muted">Попробуйте другой запрос.</p>
+    </section>
+
     <section id="cards" class="cards"></section>
+
+    <div class="load-more-wrap">
+      <button id="loadMoreBtn" class="ghost" hidden>Показать ещё</button>
+    </div>
   </main>
 
   <!-- Шаблон карточки QR-кода -->
