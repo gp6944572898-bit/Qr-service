@@ -62,34 +62,61 @@
       </div>
     </header>
 
-    <section class="create-panel">
-      <form id="createForm">
-        <input type="url" id="newTarget" placeholder="https://example.com/куда-ведёт-код" required />
-        <input type="text" id="newLabel" placeholder="Название (необязательно)" />
-        <button type="submit">Создать QR-код</button>
-      </form>
-      <p id="createError" class="error"></p>
-    </section>
+    <nav class="tabs">
+      <button class="tab-btn active" id="tabCodesBtn" type="button">Коды</button>
+      <button class="tab-btn" id="tabHistoryBtn" type="button">История</button>
+    </nav>
 
-    <section class="search-panel">
-      <input type="search" id="searchInput" placeholder="Поиск по названию, ссылке или коду…" />
-      <span id="resultsCount" class="muted"></span>
-    </section>
+    <!-- ===== Вкладка «Коды» ===== -->
+    <div id="tabCodes">
+      <section class="create-panel">
+        <form id="createForm">
+          <input type="url" id="newTarget" placeholder="https://example.com/куда-ведёт-код" required />
+          <input type="text" id="newLabel" placeholder="Название (необязательно)" />
+          <button type="submit">Создать QR-код</button>
+        </form>
+        <p id="createError" class="error"></p>
+      </section>
 
-    <section id="emptyState" class="empty" hidden>
-      <p>Пока нет ни одного QR-кода.</p>
-      <p class="muted">Создайте первый выше — ссылку внутри него всегда можно будет поменять.</p>
-    </section>
+      <section class="search-panel">
+        <input type="search" id="searchInput" placeholder="Поиск по названию, ID, ссылке…" />
+        <span id="resultsCount" class="muted"></span>
+      </section>
 
-    <section id="noResults" class="empty" hidden>
-      <p>Ничего не найдено.</p>
-      <p class="muted">Попробуйте другой запрос.</p>
-    </section>
+      <section id="emptyState" class="empty" hidden>
+        <p>Пока нет ни одного QR-кода.</p>
+        <p class="muted">Создайте первый выше — ссылку внутри него всегда можно будет поменять.</p>
+      </section>
 
-    <section id="cards" class="cards"></section>
+      <section id="noResults" class="empty" hidden>
+        <p>Ничего не найдено.</p>
+        <p class="muted">Попробуйте другой запрос.</p>
+      </section>
 
-    <div class="load-more-wrap">
-      <button id="loadMoreBtn" class="ghost" hidden>Показать ещё</button>
+      <section id="cards" class="cards"></section>
+
+      <div class="load-more-wrap">
+        <button id="loadMoreBtn" class="ghost" hidden>Показать ещё</button>
+      </div>
+    </div>
+
+    <!-- ===== Вкладка «История» ===== -->
+    <div id="tabHistory" hidden>
+      <section class="search-panel">
+        <input type="search" id="historySearchInput" placeholder="Поиск по названию, ID, ссылке…" />
+        <span id="historyResultsCount" class="muted"></span>
+      </section>
+
+      <section id="historyEmpty" class="empty" hidden>
+        <p>Изменений пока не было.</p>
+        <p class="muted">Как только вы поменяете ссылку у какого-то кода, запись появится здесь.</p>
+      </section>
+
+      <section id="historyList" class="history-list"></section>
+
+      <div class="load-more-wrap">
+        <button id="historyLoadMoreBtn" class="ghost" hidden>Показать ещё</button>
+      </div>
     </div>
   </main>
 
@@ -100,15 +127,51 @@
         <img class="card-qr" alt="QR-код" />
       </div>
       <div class="card-body">
-        <div class="card-code"></div>
+        <div class="card-meta">
+          <span class="card-id"></span>
+          <span class="card-code"></span>
+        </div>
+        <input class="card-label" type="text" placeholder="Название (необязательно)" />
         <input class="card-target" type="url" />
-        <input class="card-label" type="text" placeholder="Название" />
+
         <div class="card-actions">
           <button class="save">Сохранить</button>
-          <button class="copy ghost">Скопировать ссылку кода</button>
+          <button class="toggle-download ghost">Скачать</button>
+          <button class="copy ghost">Копировать</button>
           <button class="delete ghost danger">Удалить</button>
         </div>
+
+        <div class="download-panel" hidden>
+          <select class="dl-format">
+            <option value="png">PNG</option>
+            <option value="jpg">JPG</option>
+          </select>
+          <select class="dl-size">
+            <option value="100">100 × 100 px</option>
+            <option value="500" selected>500 × 500 px</option>
+            <option value="custom">Свой размер…</option>
+          </select>
+          <input class="dl-custom-size" type="number" min="50" max="2000" step="10" placeholder="напр. 800" hidden />
+          <button class="dl-go">Скачать файл</button>
+        </div>
+
         <p class="card-msg"></p>
+      </div>
+    </article>
+  </template>
+
+  <!-- Шаблон записи истории -->
+  <template id="historyTemplate">
+    <article class="history-item">
+      <div class="history-head">
+        <span class="history-id"></span>
+        <span class="history-time muted"></span>
+      </div>
+      <div class="history-label"></div>
+      <div class="history-change">
+        <span class="history-old"></span>
+        <span class="history-arrow">→</span>
+        <span class="history-new"></span>
       </div>
     </article>
   </template>
