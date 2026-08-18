@@ -8,7 +8,7 @@
   --accent-ink: #F4FBF8;
   --danger: #A8432F;
   --radius: 14px;
-  --tap: 48px; /* минимальный размер кликабельной зоны под палец */
+  --tap: 48px;
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-body: 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -163,6 +163,26 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,111,94,
 }
 #createForm button { width: 100%; }
 
+.search-panel {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 1rem 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+#searchInput { flex: 1; }
+#resultsCount { font-size: 0.82rem; white-space: nowrap; display: none; }
+
+.load-more-wrap {
+  max-width: 720px;
+  margin: 0 auto 2.5rem;
+  padding: 0 1rem;
+  display: flex;
+  justify-content: center;
+}
+#loadMoreBtn { width: 100%; max-width: 280px; }
+
 .empty {
   max-width: 720px;
   margin: 2rem auto;
@@ -227,6 +247,8 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,111,94,
   #createForm input[type="url"] { flex: 2 1 260px; }
   #createForm input[type="text"] { flex: 1 1 160px; }
   #createForm button { width: auto; }
+
+  #resultsCount { display: inline; }
 
   .card { flex-direction: row; }
   .card-stub { flex: 0 0 140px; border-bottom: none; border-right: 1.5px dashed var(--border); }
