@@ -11,8 +11,27 @@
 </head>
 <body>
 
+  <!-- Экран первоначальной настройки (только пока нет администратора) -->
+  <main id="setupScreen" class="screen" hidden>
+    <form id="setupForm" class="login-card">
+      <div class="login-mark">QR</div>
+      <h1>Первый запуск</h1>
+      <p class="muted">Придумайте логин и пароль для входа в панель управления</p>
+
+      <label>Логин
+        <input type="text" id="setupUsername" autocomplete="username" required />
+      </label>
+      <label>Пароль (минимум 6 символов)
+        <input type="password" id="setupPassword" autocomplete="new-password" required minlength="6" />
+      </label>
+
+      <button type="submit">Создать администратора</button>
+      <p id="setupError" class="error"></p>
+    </form>
+  </main>
+
   <!-- Экран входа -->
-  <main id="loginScreen" class="screen">
+  <main id="loginScreen" class="screen" hidden>
     <form id="loginForm" class="login-card">
       <div class="login-mark">QR</div>
       <h1>Вход в панель</h1>
