@@ -79,7 +79,7 @@ app.post('/api/login', async (req, res) => {
 
     if (!admin) {
       return res.status(400).json({
-        error: 'Администратор ещё не создан. Откройте главную страницу сервиса.',
+        error: 'Администратор ещё не создан. Выполните на сервере: npm run create-admin',
       });
     }
 
@@ -112,8 +112,12 @@ app.get('/api/me', requireAuth, (req, res) => {
 
 app.get('/api/qrcodes', requireAuth, async (req, res) => {
   try {
-    const list = await db.listCodes();
-    res.json(list);
+    const search = typeof req.query.search === 'string' ? req.query.search : '';
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+
+    const { items, total } = await db.listCodes({ search, limit, offset });
+    res.json({ items, total });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Ошибка сервера' });
