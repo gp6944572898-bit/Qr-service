@@ -1,3 +1,6 @@
+const setupScreen = document.getElementById('setupScreen');
+const setupForm = document.getElementById('setupForm');
+const setupError = document.getElementById('setupError');
 const loginScreen = document.getElementById('loginScreen');
 const dashScreen = document.getElementById('dashScreen');
 const loginForm = document.getElementById('loginForm');
@@ -21,9 +24,17 @@ async function api(path, options = {}) {
   return data;
 }
 
-// ---------- Инициализация ----------
-
 async function init() {
+  try {
+    const status = await api('/api/setup/status');
+    if (status.needsSetup) {
+      showSetup();
+      return;
+    }
+  } catch {
+    // если проверка не удалась, просто идём дальше к обычному входу
+  }
+
   try {
     const me = await api('/api/me');
     whoami.textContent = me.username;
@@ -34,16 +45,35 @@ async function init() {
   }
 }
 
+function showSetup() {
+  setupScreen.hidden = false;
+  loginScreen.hidden = true;
+  dashScreen.hidden = true;
+}
 function showLogin() {
+  setupScreen.hidden = true;
   loginScreen.hidden = false;
   dashScreen.hidden = true;
 }
 function showDash() {
+  setupScreen.hidden = true;
   loginScreen.hidden = true;
   dashScreen.hidden = false;
 }
 
-// ---------- Вход / выход ----------
+setupForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  setupError.textContent = '';
+  const username = document.getElementById('setupUsername').value.trim();
+  const password = document.getElementById('setupPassword').value;
+  try {
+    await api('/api/setup', { method: 'POST', body: JSON.stringify({ username, password }) });
+    setupForm.reset();
+    showLogin();
+  } catch (err) {
+    setupError.textContent = err.message;
+  }
+});
 
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -66,8 +96,6 @@ logoutBtn.addEventListener('click', async () => {
   showLogin();
 });
 
-// ---------- Создание QR-кода ----------
-
 createForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   createError.textContent = '';
@@ -81,8 +109,6 @@ createForm.addEventListener('submit', async (e) => {
     createError.textContent = err.message;
   }
 });
-
-// ---------- Список QR-кодов ----------
 
 async function loadCodes() {
   const list = await api('/api/qrcodes');
